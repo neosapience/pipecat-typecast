@@ -29,7 +29,7 @@ from pipecat.transports.base_transport import BaseTransport, TransportParams
 from pipecat.transports.daily.transport import DailyParams
 from pipecat.transports.websocket.fastapi import FastAPIWebsocketParams
 
-from pipecat_typecast.tts import TypecastTTSService
+from pipecat_typecast import TypecastTTSService
 
 load_dotenv(override=True)
 
