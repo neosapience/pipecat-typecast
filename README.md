@@ -93,7 +93,7 @@ Notes:
 
 ## Running the Example
 
-1. Install dependencies (using `uv` or `pip`):
+1. Install dependencies:
     ```bash
     uv sync
     ```

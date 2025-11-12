@@ -55,8 +55,20 @@ ISO2_TO_ISO3_LANGUAGE_MAP: Dict[str, str] = {
 
 
 def language_to_typecast_language(language: Language) -> Optional[str]:
-    """Convert Pipecat language enum values to Typecast ISO-639-3 codes."""
+    """Convert Pipecat language enum values to Typecast ISO-639-3 codes.
 
+    Args:
+        language: Pipecat Language enum (e.g., Language.EN, Language.KO).
+
+    Returns:
+        ISO-639-3 language code string (e.g., 'eng', 'kor'), or None if unsupported.
+
+    Example:
+        >>> language_to_typecast_language(Language.EN)
+        'eng'
+        >>> language_to_typecast_language(Language.KO)
+        'kor'
+    """
     if not language:
         return None
 
@@ -92,7 +104,14 @@ class TypecastInputParams(BaseModel):
 
 
 class TypecastTTSService(TTSService):
-    """HTTP-based Typecast TTS service."""
+    """HTTP-based Typecast TTS service for Pipecat pipelines.
+
+    Provides high-quality neural text-to-speech with emotion control and
+    audio customization options.
+
+    Attributes:
+        InputParams: Configuration model for TTS parameters.
+    """
 
     InputParams = TypecastInputParams
 
@@ -108,7 +127,21 @@ class TypecastTTSService(TTSService):
         params: Optional[TypecastInputParams] = None,
         **kwargs,
     ):
-        """Initialize the Typecast TTS service."""
+        """Initialize the Typecast TTS service.
+
+        Args:
+            aiohttp_session: Active aiohttp client session for API requests.
+            api_key: Typecast API key. Falls back to TYPECAST_API_KEY env var.
+            voice_id: Voice ID to use. Falls back to TYPECAST_VOICE_ID env var.
+            model: Typecast model version (default: ssfm-v21).
+            base_url: API endpoint URL.
+            sample_rate: Audio sample rate in Hz (default: 44100).
+            params: Advanced configuration parameters.
+            **kwargs: Additional arguments passed to TTSService.
+
+        Raises:
+            ValueError: If api_key is not provided and not in environment.
+        """
         super().__init__(sample_rate=sample_rate, **kwargs)
 
         api_key = os.getenv("TYPECAST_API_KEY")
