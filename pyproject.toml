@@ -7,6 +7,12 @@ license-files = ["LICENSE"]
 readme = "README.md"
 requires-python = ">=3.10"
 keywords = ["pipecat", "text-to-speech", "ai"]
+authors = [
+    {name = "Neosapience", email = "help@typecast.ai"}
+]
+maintainers = [
+    {name = "Neosapience", email = "help@typecast.ai"}
+]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
@@ -26,11 +32,14 @@ dev = [
     "python-dotenv>=1.0.1",
     "onnxruntime>=1.23.2",
     "ruff>=0.12.11",
+    "build>=1.0.0",
+    "twine>=5.0.0",
 ]
 
 [project.urls]
+Homepage = "https://typecast.ai"
+Documentation = "https://typecast.ai/docs/overview"
 Source = "https://github.com/neosapience/pipecat-typecast"
-Website = "https://typecast.ai"
 
 [build-system]
 requires = ["setuptools>=64", "setuptools_scm>=8"]
