@@ -3,10 +3,13 @@
 from importlib.metadata import version as _get_version
 
 from pipecat_typecast.tts import (
-	TypecastTTSService,
-	TypecastInputParams,
-	PromptOptions,
 	OutputOptions,
+	PresetPromptOptions,
+	PromptOptions,
+	SmartPromptOptions,
+	TypecastInputParams,
+	TypecastPromptOptions,
+	TypecastTTSService,
 )
 
 try:
@@ -19,6 +22,9 @@ __all__ = [
 	"TypecastTTSService",
 	"TypecastInputParams",
 	"PromptOptions",
+	"PresetPromptOptions",
+	"SmartPromptOptions",
+	"TypecastPromptOptions",
 	"OutputOptions",
 ]
 
