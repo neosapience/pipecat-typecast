@@ -1,6 +1,6 @@
 [project]
 name = "pipecat-ai-typecast"
-version = "0.0.2"
+version = "0.1.0"
 description = "Typecast is an AI text-to-speech API that converts text into lifelike, expressive speech in many languages."
 license = "BSD-2-Clause"
 license-files = ["LICENSE"]
