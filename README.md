@@ -50,20 +50,21 @@ See [`example.py`](example.py) for a complete working example including event ha
 
 `TypecastTTSService` exposes structured parameter models so you can tune emotion and audio output.
 
+#### ssfm-v30 (Default Model) - Preset Emotion Control
+
 ```python
 from pipecat_typecast.tts import (
     TypecastTTSService,
     TypecastInputParams,
-    PromptOptions,
+    PresetPromptOptions,
     OutputOptions,
 )
 
 params = TypecastInputParams(
     # Language influences pronunciation model (defaults to English)
     # Language.EN / Language.KO / Language.JA ...
-    # If omitted, Typecast auto-detect may apply (depending on voice).
-    prompt_options=PromptOptions(
-        emotion_preset="happy",      # normal | happy | sad | angry | whisper (voice dependent)
+    prompt_options=PresetPromptOptions(
+        emotion_preset="happy",      # normal | happy | sad | angry | whisper | toneup | tonedown
         emotion_intensity=1.3,       # 0.0–2.0 (float)
     ),
     output_options=OutputOptions(
@@ -77,18 +78,71 @@ params = TypecastInputParams(
 tts = TypecastTTSService(
     aiohttp_session=session,
     api_key=os.getenv("TYPECAST_API_KEY"),
-    voice_id="tc_62a8975e695ad26f7fb514d1",  # Replace with another voice ID as desired
-    model="ssfm-v21",                        # Default model
+    voice_id="tc_62a8975e695ad26f7fb514d1",
+    model="ssfm-v30",                        # Default model (ssfm-v30)
     params=params,
 )
 ```
 
-Notes:
-- `emotion_preset` availability varies by voice. If unsupported, the service falls back to neutral.
+#### ssfm-v30 - Smart Emotion Control (Context-Aware)
+
+For more natural emotional delivery, use `SmartPromptOptions` which infers emotion from surrounding context:
+
+```python
+from pipecat_typecast.tts import (
+    TypecastTTSService,
+    TypecastInputParams,
+    SmartPromptOptions,
+)
+
+params = TypecastInputParams(
+    prompt_options=SmartPromptOptions(
+        previous_text="I just got the best news ever!",   # Context before (max 2000 chars)
+        next_text="I can't wait to share this with everyone!",  # Context after (max 2000 chars)
+    ),
+)
+
+tts = TypecastTTSService(
+    aiohttp_session=session,
+    api_key=os.getenv("TYPECAST_API_KEY"),
+    params=params,
+)
+```
+
+#### Legacy ssfm-v21 Model
+
+For backward compatibility, you can still use `PromptOptions` with the ssfm-v21 model:
+
+```python
+from pipecat_typecast.tts import (
+    TypecastTTSService,
+    TypecastInputParams,
+    PromptOptions,
+)
+
+params = TypecastInputParams(
+    prompt_options=PromptOptions(
+        emotion_preset="happy",      # normal | happy | sad | angry
+        emotion_intensity=1.3,
+    ),
+)
+
+tts = TypecastTTSService(
+    aiohttp_session=session,
+    api_key=os.getenv("TYPECAST_API_KEY"),
+    model="ssfm-v21",
+    params=params,
+)
+```
+
+### Notes
+
+- **ssfm-v30** is the default model with enhanced emotion control and 37 supported languages.
+- `emotion_preset` availability varies by voice. ssfm-v30 adds: `whisper`, `toneup`, `tonedown`.
 - `emotion_intensity` > 1.0 increases expressiveness; extreme values can sound synthetic.
 - `audio_pitch` shifts pitch in musical semitone units (use small adjustments for naturalness).
 - `audio_tempo` changes speaking speed; keep within 0.85–1.15 for intelligibility.
-- `seed` (set in `TypecastInputParams`) provides deterministic synthesis for identical text (when supported by model).
+- `seed` (set in `TypecastInputParams`) provides deterministic synthesis for identical text.
 - Unsupported `audio_format` values yield an error frame—keep `wav`.
 
 ## Running the Example
@@ -113,7 +167,7 @@ The bot will create a call (e.g. Daily room) and speak responses using Typecast 
 
 ## Compatibility
 
-**Tested with Pipecat v0.0.89**
+**Tested with Pipecat v0.0.94+**
 
 - Python 3.10+
 - Daily / Twilio / generic WebRTC transports (see `example.py`)
