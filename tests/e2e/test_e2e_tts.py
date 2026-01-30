@@ -186,7 +186,6 @@ class TestE2EErrorHandling:
 
         # The API may return an error for empty text
         # This test documents the actual behavior
-        frame_types = [type(f).__name__ for f in frames]
         assert len(frames) > 0, "Expected some frames even for empty text"
 
 
