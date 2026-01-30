@@ -160,9 +160,10 @@ class TestE2EErrorHandling:
     """End-to-end tests for error handling."""
 
     @pytest.mark.e2e
-    async def test_invalid_api_key(self, aiohttp_session, monkeypatch):
+    async def test_invalid_api_key(self, real_voice_id, aiohttp_session, monkeypatch):
         """Test that invalid API key returns appropriate error."""
         monkeypatch.setenv("TYPECAST_API_KEY", "invalid-api-key")
+        monkeypatch.setenv("TYPECAST_VOICE_ID", real_voice_id)
 
         service = TypecastTTSService(aiohttp_session=aiohttp_session)
 
