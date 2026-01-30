@@ -4,8 +4,6 @@ These tests require valid TYPECAST_API_KEY environment variable.
 Run with: pytest -m e2e
 """
 
-import os
-
 import aiohttp
 import pytest
 from pipecat.frames.frames import ErrorFrame, TTSAudioRawFrame, TTSStartedFrame, TTSStoppedFrame
@@ -27,11 +25,11 @@ async def aiohttp_session():
 
 
 @pytest.fixture
-def tts_service(real_api_key, real_voice_id, aiohttp_session):
+def tts_service(real_api_key, real_voice_id, aiohttp_session, monkeypatch):
     """Create a TypecastTTSService with real credentials."""
     # Set environment variables for the service
-    os.environ["TYPECAST_API_KEY"] = real_api_key
-    os.environ["TYPECAST_VOICE_ID"] = real_voice_id
+    monkeypatch.setenv("TYPECAST_API_KEY", real_api_key)
+    monkeypatch.setenv("TYPECAST_VOICE_ID", real_voice_id)
 
     return TypecastTTSService(aiohttp_session=aiohttp_session)
 
@@ -40,10 +38,12 @@ class TestE2ETTSGeneration:
     """End-to-end tests for TTS audio generation."""
 
     @pytest.mark.e2e
-    async def test_generate_english_speech(self, real_api_key, real_voice_id, aiohttp_session):
+    async def test_generate_english_speech(
+        self, real_api_key, real_voice_id, aiohttp_session, monkeypatch
+    ):
         """Test generating English speech with real API."""
-        os.environ["TYPECAST_API_KEY"] = real_api_key
-        os.environ["TYPECAST_VOICE_ID"] = real_voice_id
+        monkeypatch.setenv("TYPECAST_API_KEY", real_api_key)
+        monkeypatch.setenv("TYPECAST_VOICE_ID", real_voice_id)
 
         service = TypecastTTSService(aiohttp_session=aiohttp_session)
 
@@ -70,10 +70,12 @@ class TestE2ETTSGeneration:
         assert total_audio_bytes > 0, "Audio data is empty"
 
     @pytest.mark.e2e
-    async def test_generate_korean_speech(self, real_api_key, real_voice_id, aiohttp_session):
+    async def test_generate_korean_speech(
+        self, real_api_key, real_voice_id, aiohttp_session, monkeypatch
+    ):
         """Test generating Korean speech with real API."""
-        os.environ["TYPECAST_API_KEY"] = real_api_key
-        os.environ["TYPECAST_VOICE_ID"] = real_voice_id
+        monkeypatch.setenv("TYPECAST_API_KEY", real_api_key)
+        monkeypatch.setenv("TYPECAST_VOICE_ID", real_voice_id)
 
         params = TypecastInputParams(language=Language.KO)
         service = TypecastTTSService(
@@ -95,11 +97,11 @@ class TestE2ETTSGeneration:
 
     @pytest.mark.e2e
     async def test_generate_with_emotion_preset(
-        self, real_api_key, real_voice_id, aiohttp_session
+        self, real_api_key, real_voice_id, aiohttp_session, monkeypatch
     ):
         """Test generating speech with emotion preset."""
-        os.environ["TYPECAST_API_KEY"] = real_api_key
-        os.environ["TYPECAST_VOICE_ID"] = real_voice_id
+        monkeypatch.setenv("TYPECAST_API_KEY", real_api_key)
+        monkeypatch.setenv("TYPECAST_VOICE_ID", real_voice_id)
 
         params = TypecastInputParams(
             prompt_options=PresetPromptOptions(
@@ -125,11 +127,11 @@ class TestE2ETTSGeneration:
 
     @pytest.mark.e2e
     async def test_generate_with_smart_prompt(
-        self, real_api_key, real_voice_id, aiohttp_session
+        self, real_api_key, real_voice_id, aiohttp_session, monkeypatch
     ):
         """Test generating speech with smart context-aware emotion."""
-        os.environ["TYPECAST_API_KEY"] = real_api_key
-        os.environ["TYPECAST_VOICE_ID"] = real_voice_id
+        monkeypatch.setenv("TYPECAST_API_KEY", real_api_key)
+        monkeypatch.setenv("TYPECAST_VOICE_ID", real_voice_id)
 
         params = TypecastInputParams(
             prompt_options=SmartPromptOptions(
@@ -173,10 +175,10 @@ class TestE2EErrorHandling:
         assert len(error_frames) >= 1, "Expected error frame for invalid API key"
 
     @pytest.mark.e2e
-    async def test_empty_text(self, real_api_key, real_voice_id, aiohttp_session):
+    async def test_empty_text(self, real_api_key, real_voice_id, aiohttp_session, monkeypatch):
         """Test behavior with empty text."""
-        os.environ["TYPECAST_API_KEY"] = real_api_key
-        os.environ["TYPECAST_VOICE_ID"] = real_voice_id
+        monkeypatch.setenv("TYPECAST_API_KEY", real_api_key)
+        monkeypatch.setenv("TYPECAST_VOICE_ID", real_voice_id)
 
         service = TypecastTTSService(aiohttp_session=aiohttp_session)
 
@@ -206,11 +208,11 @@ class TestE2EMultipleLanguages:
         ],
     )
     async def test_multilingual_speech(
-        self, real_api_key, real_voice_id, aiohttp_session, language, text
+        self, real_api_key, real_voice_id, aiohttp_session, monkeypatch, language, text
     ):
         """Test generating speech in multiple languages."""
-        os.environ["TYPECAST_API_KEY"] = real_api_key
-        os.environ["TYPECAST_VOICE_ID"] = real_voice_id
+        monkeypatch.setenv("TYPECAST_API_KEY", real_api_key)
+        monkeypatch.setenv("TYPECAST_VOICE_ID", real_voice_id)
 
         params = TypecastInputParams(language=language)
         service = TypecastTTSService(
