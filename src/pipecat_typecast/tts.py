@@ -8,13 +8,11 @@
 
 from __future__ import annotations
 
-from typing import AsyncGenerator, Dict, Optional
-
 import os
+from typing import AsyncGenerator, Dict, Literal, Optional, Union
+
 import aiohttp
 from loguru import logger
-from pydantic import BaseModel, Field
-
 from pipecat.frames.frames import (
     ErrorFrame,
     Frame,
@@ -24,14 +22,16 @@ from pipecat.frames.frames import (
 from pipecat.services.tts_service import TTSService
 from pipecat.transcriptions.language import Language
 from pipecat.utils.tracing.service_decorators import traced_tts
+from pydantic import BaseModel, Field
 
 AUTHORIZATION_HEADER = "X-API-KEY"
 DEFAULT_BASE_URL = "https://api.typecast.ai/v1/text-to-speech"
-DEFAULT_MODEL = "ssfm-v21"
+DEFAULT_MODEL = "ssfm-v30"
 DEFAULT_SAMPLE_RATE = 44100
 DEFAULT_VOICE_ID = "tc_62a8975e695ad26f7fb514d1"
 
 ISO2_TO_ISO3_LANGUAGE_MAP: Dict[str, str] = {
+    # Common languages (ssfm-v21 & ssfm-v30)
     "en": "eng",
     "ko": "kor",
     "ja": "jpn",
@@ -51,6 +51,24 @@ ISO2_TO_ISO3_LANGUAGE_MAP: Dict[str, str] = {
     "th": "tha",
     "vi": "vie",
     "id": "ind",
+    # Additional languages
+    "el": "ell",  # Greek
+    "ta": "tam",  # Tamil
+    "tl": "tgl",  # Tagalog
+    "fi": "fin",  # Finnish
+    "sk": "slk",  # Slovak
+    "hr": "hrv",  # Croatian
+    "uk": "ukr",  # Ukrainian
+    "da": "dan",  # Danish
+    "ms": "msa",  # Malay
+    "cs": "ces",  # Czech
+    "bg": "bul",  # Bulgarian
+    "ro": "ron",  # Romanian
+    # ssfm-v30 additional languages
+    "bn": "ben",  # Bengali
+    "hu": "hun",  # Hungarian
+    "no": "nor",  # Norwegian
+    "pa": "pan",  # Punjabi
 }
 
 
@@ -77,10 +95,60 @@ def language_to_typecast_language(language: Language) -> Optional[str]:
 
 
 class PromptOptions(BaseModel):
-    """Emotion control options for Typecast synthesis."""
+    """Legacy emotion control options for ssfm-v21 model."""
 
     emotion_preset: str = Field(default="normal")
     emotion_intensity: float = Field(default=1.0, ge=0.0, le=2.0)
+
+
+class PresetPromptOptions(BaseModel):
+    """Preset-based emotion control for ssfm-v30 model.
+
+    Provides direct control over emotion using predefined presets.
+    Available presets for ssfm-v30: normal, happy, sad, angry, whisper, toneup, tonedown
+    """
+
+    emotion_type: Literal["preset"] = Field(
+        default="preset",
+        description="Must be 'preset' for preset-based emotion control",
+    )
+    emotion_preset: str = Field(
+        default="normal",
+        description="Emotion preset to apply",
+    )
+    emotion_intensity: float = Field(
+        default=1.0,
+        ge=0.0,
+        le=2.0,
+        description="Intensity of the emotion (0.0-2.0)",
+    )
+
+
+class SmartPromptOptions(BaseModel):
+    """Context-aware emotion inference for ssfm-v30 model.
+
+    Automatically infers appropriate emotion based on surrounding text context.
+    Useful for natural, context-appropriate emotional delivery.
+    """
+
+    emotion_type: Literal["smart"] = Field(
+        default="smart",
+        description="Must be 'smart' for context-aware emotion inference",
+    )
+    previous_text: Optional[str] = Field(
+        default=None,
+        description="Text that comes BEFORE the main text (max 2000 chars)",
+        max_length=2000,
+    )
+    next_text: Optional[str] = Field(
+        default=None,
+        description="Text that comes AFTER the main text (max 2000 chars)",
+        max_length=2000,
+    )
+
+
+# Union type for all prompt options
+TypecastPromptOptions = Union[PromptOptions, PresetPromptOptions, SmartPromptOptions]
 
 
 class OutputOptions(BaseModel):
@@ -95,11 +163,32 @@ class OutputOptions(BaseModel):
 
 
 class TypecastInputParams(BaseModel):
-    """Input parameters for Typecast TTS configuration."""
+    """Input parameters for Typecast TTS configuration.
+
+    Supports both legacy ssfm-v21 and new ssfm-v30 models:
+    - For ssfm-v21: Use PromptOptions with emotion_preset and emotion_intensity
+    - For ssfm-v30: Use PresetPromptOptions or SmartPromptOptions
+
+    Example (ssfm-v30 with preset):
+        >>> params = TypecastInputParams(
+        ...     prompt_options=PresetPromptOptions(
+        ...         emotion_preset="happy",
+        ...         emotion_intensity=1.5,
+        ...     )
+        ... )
+
+    Example (ssfm-v30 with smart context):
+        >>> params = TypecastInputParams(
+        ...     prompt_options=SmartPromptOptions(
+        ...         previous_text="I just got great news!",
+        ...         next_text="I can't wait to share it!",
+        ...     )
+        ... )
+    """
 
     language: Optional[Language] = Language.EN
     seed: Optional[int] = Field(default=None, ge=0)
-    prompt_options: PromptOptions = Field(default_factory=PromptOptions)
+    prompt_options: TypecastPromptOptions = Field(default_factory=PresetPromptOptions)
     output_options: OutputOptions = Field(default_factory=OutputOptions)
 
 
@@ -133,7 +222,7 @@ class TypecastTTSService(TTSService):
             aiohttp_session: Active aiohttp client session for API requests.
             api_key: Typecast API key. Falls back to TYPECAST_API_KEY env var.
             voice_id: Voice ID to use. Falls back to TYPECAST_VOICE_ID env var.
-            model: Typecast model version (default: ssfm-v21).
+            model: Typecast model version (default: ssfm-v30).
             base_url: API endpoint URL.
             sample_rate: Audio sample rate in Hz (default: 44100).
             params: Advanced configuration parameters.
@@ -176,9 +265,11 @@ class TypecastTTSService(TTSService):
         self.set_voice(voice_id)
 
     def can_generate_metrics(self) -> bool:
+        """Return whether the service can generate metrics."""
         return True
 
     def language_to_service_language(self, language: Language) -> Optional[str]:
+        """Convert Pipecat Language enum to Typecast ISO-639-3 code."""
         return language_to_typecast_language(language)
 
     @traced_tts
@@ -247,7 +338,12 @@ class TypecastTTSService(TTSService):
                 await self.start_tts_usage_metrics(text)
                 yield TTSStartedFrame()
 
-                chunk_iterator = response.content.iter_chunked(self.chunk_size)
+                # Use default chunk size if sample_rate not set yet
+                # (sample_rate * 0.5s * 2 bytes/sample)
+                effective_chunk_size = self.chunk_size or int(
+                    DEFAULT_SAMPLE_RATE * 0.5 * 2
+                )
+                chunk_iterator = response.content.iter_chunked(effective_chunk_size)
                 first_frame = True
 
                 async for frame in self._stream_audio_frames_from_iterator(

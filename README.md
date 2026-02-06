@@ -1,8 +1,20 @@
-# Pipecat Typecast TTS Integration
+<div align="center">
+
+# pipecat-ai-typecast
+
+**Typecast TTS Integration for Pipecat AI Pipelines**
+
+[![PyPI version](https://img.shields.io/pypi/v/pipecat-ai-typecast.svg)](https://pypi.org/project/pipecat-ai-typecast/)
+[![Python](https://img.shields.io/pypi/pyversions/pipecat-ai-typecast.svg)](https://pypi.org/project/pipecat-ai-typecast/)
+[![License](https://img.shields.io/badge/license-BSD--2--Clause-blue.svg)](LICENSE)
 
 Add high-quality neural voices from [Typecast](https://typecast.ai/) to your Pipecat AI pipelines.
 
-**Maintainer:** Neosapience / Typecast team (@neosapience)
+[Installation](#installation) | [Quick Start](#quick-start) | [Configuration](#configuration) | [Examples](#running-the-example)
+
+</div>
+
+---
 
 ## Installation
 
@@ -12,10 +24,12 @@ pip install pipecat-ai-typecast
 
 ## Prerequisites
 
-- Typecast API key (`TYPECAST_API_KEY`)
-- Optional: Voice override (`TYPECAST_VOICE_ID`) – defaults to `tc_62a8975e695ad26f7fb514d1`
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `TYPECAST_API_KEY` | Yes | [Get your API key here](https://typecast.ai/developers/api/api-key) |
+| `TYPECAST_VOICE_ID` | No | Voice override (defaults to `tc_672c5f5ce59fac2a48faeaee`) |
 
-## Usage with Pipecat Pipeline
+## Quick Start
 
 `TypecastTTSService` integrates Typecast's streaming text-to-speech into a Pipecat pipeline. It converts LLM text output into expressive speech while leveraging Pipecat's transport, STT, and turn-taking stack.
 
@@ -26,11 +40,11 @@ from pipecat_typecast.tts import TypecastTTSService
 
 async with aiohttp.ClientSession() as session:
     llm = ...
-    sst = ...
+    stt = ...
     tts = TypecastTTSService(
         aiohttp_session=session,
         api_key=os.getenv("TYPECAST_API_KEY"),
-        voice_id=os.getenv("TYPECAST_VOICE_ID", "tc_62a8975e695ad26f7fb514d1"),
+        voice_id=os.getenv("TYPECAST_VOICE_ID", "tc_672c5f5ce59fac2a48faeaee"),
     )
 
     pipeline = Pipeline([
@@ -46,83 +60,148 @@ async with aiohttp.ClientSession() as session:
 
 See [`example.py`](example.py) for a complete working example including event handlers and transport setup.
 
-### Advanced Configuration (Emotion & Audio Controls)
+---
 
-`TypecastTTSService` exposes structured parameter models so you can tune emotion and audio output.
+## Configuration
+
+`TypecastTTSService` exposes structured parameter models for emotion and audio control.
+
+### ssfm-v30 (Default) - Preset Emotion Control
 
 ```python
 from pipecat_typecast.tts import (
     TypecastTTSService,
     TypecastInputParams,
-    PromptOptions,
+    PresetPromptOptions,
     OutputOptions,
 )
 
 params = TypecastInputParams(
-    # Language influences pronunciation model (defaults to English)
-    # Language.EN / Language.KO / Language.JA ...
-    # If omitted, Typecast auto-detect may apply (depending on voice).
-    prompt_options=PromptOptions(
-        emotion_preset="happy",      # normal | happy | sad | angry | whisper (voice dependent)
-        emotion_intensity=1.3,       # 0.0–2.0 (float)
+    prompt_options=PresetPromptOptions(
+        emotion_preset="happy",      # normal | happy | sad | angry | whisper | toneup | tonedown
+        emotion_intensity=1.3,       # 0.0 - 2.0
     ),
     output_options=OutputOptions(
-        volume=110,                  # 0–200 (percent)
-        audio_pitch=2,               # -12..12 (semitones)
-        audio_tempo=1.05,            # 0.5–2.0 (playback speed)
-        audio_format="wav",          # Only 'wav' currently supported
+        volume=110,                  # 0 - 200 (percent)
+        audio_pitch=2,               # -12 to 12 (semitones)
+        audio_tempo=1.05,            # 0.5 - 2.0 (playback speed)
+        audio_format="wav",          # Only 'wav' supported
     ),
 )
 
 tts = TypecastTTSService(
     aiohttp_session=session,
     api_key=os.getenv("TYPECAST_API_KEY"),
-    voice_id="tc_62a8975e695ad26f7fb514d1",  # Replace with another voice ID as desired
-    model="ssfm-v21",                        # Default model
+    voice_id="tc_672c5f5ce59fac2a48faeaee",
+    model="ssfm-v30",
     params=params,
 )
 ```
 
-Notes:
-- `emotion_preset` availability varies by voice. If unsupported, the service falls back to neutral.
-- `emotion_intensity` > 1.0 increases expressiveness; extreme values can sound synthetic.
-- `audio_pitch` shifts pitch in musical semitone units (use small adjustments for naturalness).
-- `audio_tempo` changes speaking speed; keep within 0.85–1.15 for intelligibility.
-- `seed` (set in `TypecastInputParams`) provides deterministic synthesis for identical text (when supported by model).
-- Unsupported `audio_format` values yield an error frame—keep `wav`.
+### ssfm-v30 - Smart Emotion Control
+
+For context-aware emotional delivery, use `SmartPromptOptions` which infers emotion from surrounding text:
+
+```python
+from pipecat_typecast.tts import (
+    TypecastTTSService,
+    TypecastInputParams,
+    SmartPromptOptions,
+)
+
+params = TypecastInputParams(
+    prompt_options=SmartPromptOptions(
+        previous_text="I just got the best news ever!",   # max 2000 chars
+        next_text="I can't wait to share this with everyone!",
+    ),
+)
+
+tts = TypecastTTSService(
+    aiohttp_session=session,
+    api_key=os.getenv("TYPECAST_API_KEY"),
+    params=params,
+)
+```
+
+### Legacy Model (ssfm-v21)
+
+<details>
+<summary>For backward compatibility with ssfm-v21</summary>
+
+```python
+from pipecat_typecast.tts import (
+    TypecastTTSService,
+    TypecastInputParams,
+    PromptOptions,
+)
+
+params = TypecastInputParams(
+    prompt_options=PromptOptions(
+        emotion_preset="happy",      # normal | happy | sad | angry
+        emotion_intensity=1.3,
+    ),
+)
+
+tts = TypecastTTSService(
+    aiohttp_session=session,
+    api_key=os.getenv("TYPECAST_API_KEY"),
+    model="ssfm-v21",
+    params=params,
+)
+```
+
+</details>
+
+### Parameter Reference
+
+| Parameter | Range | Description |
+|-----------|-------|-------------|
+| `emotion_preset` | varies by voice | ssfm-v30 adds: `whisper`, `toneup`, `tonedown` |
+| `emotion_intensity` | 0.0 - 2.0 | Values > 1.0 increase expressiveness |
+| `audio_pitch` | -12 to 12 | Semitone adjustment |
+| `audio_tempo` | 0.5 - 2.0 | Recommended: 0.85 - 1.15 |
+| `seed` | integer | Deterministic synthesis for identical text |
+
+---
 
 ## Running the Example
 
-1. Install dependencies:
-    ```bash
-    uv sync
-    ```
+```bash
+# 1. Install dependencies
+uv sync
 
-2. Set up your environment
+# 2. Configure environment
+cp env.example .env
 
-   ```bash
-   cp env.example .env
-   ```
-
-3. Run:
-    ```bash
-    uv run python example.py
-    ```
+# 3. Run
+uv run python example.py
+```
 
 The bot will create a call (e.g. Daily room) and speak responses using Typecast voices.
 
+---
+
 ## Compatibility
 
-**Tested with Pipecat v0.0.89**
+| Requirement | Version |
+|-------------|---------|
+| Pipecat | v0.0.94+ |
+| Python | 3.10+ |
+| Transports | Daily / Twilio / WebRTC |
 
-- Python 3.10+
-- Daily / Twilio / generic WebRTC transports (see `example.py`)
-
-## License
-
-BSD-2-Clause - see [LICENSE](LICENSE)
+---
 
 ## Support
 
-- Docs: https://typecast.ai (refer to API docs for voice IDs & parameters)
-- Pipecat Discord: https://discord.gg/pipecat (`#community-integrations`)
+- **API Documentation**: [typecast.ai](https://typecast.ai)
+- **Pipecat Discord**: [discord.gg/pipecat](https://discord.gg/pipecat) (`#community-integrations`)
+
+---
+
+<div align="center">
+
+**Maintainer**: Neosapience / Typecast team ([@neosapience](https://github.com/neosapience))
+
+BSD-2-Clause License
+
+</div>
