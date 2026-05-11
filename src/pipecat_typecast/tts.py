@@ -22,7 +22,7 @@ from pipecat.frames.frames import (
 from pipecat.services.tts_service import TTSService
 from pipecat.transcriptions.language import Language
 from pipecat.utils.tracing.service_decorators import traced_tts
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 AUTHORIZATION_HEADER = "X-API-KEY"
 DEFAULT_BASE_URL = "https://api.typecast.ai/v1/text-to-speech"
@@ -152,14 +152,42 @@ TypecastPromptOptions = Union[PromptOptions, PresetPromptOptions, SmartPromptOpt
 
 
 class OutputOptions(BaseModel):
-    """Audio output configuration supported by Typecast."""
+    """Audio output configuration supported by Typecast.
 
-    volume: int = Field(default=100, ge=0, le=200)
+    `volume` and `target_lufs` are mutually exclusive server-side — any
+    request that sets both returns a 4xx. We surface that contract here
+    by defaulting `volume` to ``None`` (the server-side default of 100
+    kicks in when neither is set) and rejecting explicit combinations
+    via a model validator.
+    """
+
+    volume: Optional[int] = Field(default=None, ge=0, le=200)
     audio_pitch: int = Field(default=0, ge=-12, le=12)
     audio_tempo: float = Field(default=1.0, ge=0.5, le=2.0)
     audio_format: str = Field(default="wav")
+    target_lufs: Optional[float] = Field(
+        default=None,
+        ge=-70.0,
+        le=0.0,
+        description=(
+            "Absolute loudness normalization target in LUFS. Mutually "
+            "exclusive with `volume` — set one or the other, not both."
+        ),
+    )
 
     model_config = {"validate_assignment": True}
+
+    @model_validator(mode="after")
+    def _check_mutual_exclusion(self) -> "OutputOptions":
+        # Both unset (None / None) is the common case — defer to the server
+        # default of 100. The model rejects only an *explicit* pairing so the
+        # error surfaces locally before the request goes out.
+        if self.target_lufs is not None and self.volume is not None:
+            raise ValueError(
+                "Volume and target_lufs are mutually exclusive. "
+                "Set only one of them — leave volume unset when using target_lufs."
+            )
+        return self
 
 
 class TypecastInputParams(BaseModel):

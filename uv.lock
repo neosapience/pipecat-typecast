@@ -2354,7 +2354,7 @@ sdist = { url = "https://files.pythonhosted.org/packages/6d/c8/19e9edb707581431c
 
 [[package]]
 name = "pipecat-ai-typecast"
-version = "0.0.2"
+version = "0.2.0"
 source = { editable = "." }
 dependencies = [
     { name = "aiohttp" },
@@ -2398,7 +2398,7 @@ dev = [
 ]
 test = [
     { name = "aioresponses", specifier = ">=0.7.6" },
-    { name = "pytest", specifier = ">=8.0.0" },
+    { name = "pytest", specifier = ">=8.2.0" },
     { name = "pytest-asyncio", specifier = ">=0.24.0" },
     { name = "pytest-cov", specifier = ">=4.1.0" },
 ]

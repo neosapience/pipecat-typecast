@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-05-11
+
+### Added
+
+- **`OutputOptions.target_lufs`** — absolute loudness normalization target in LUFS (`-70.0` to `0.0`). Maps to the Typecast TTS `output.target_lufs` field. Useful when piping speech into downstream audio pipelines that expect a consistent loudness regardless of voice.
+
+### Changed
+
+- **`OutputOptions.volume` default is now `None`** (was `100`). The server-side default of 100 still applies when neither `volume` nor `target_lufs` is set — `model_dump(exclude_none=True)` simply drops the field from the payload. This change is needed to make the `volume` vs `target_lufs` mutual exclusion explicit: setting `target_lufs` alone is now the supported path, and the dumped payload no longer carries a stray `volume=100` that would make the server reject the request.
+- **Mutual exclusion is enforced via a model validator.** `OutputOptions(volume=..., target_lufs=...)` raises `ValidationError("Volume and target_lufs are mutually exclusive...")` so the conflict surfaces at construction time rather than during the HTTP call.
+
+### Backward compatibility
+
+- Callers that built `OutputOptions()` with no arguments are unaffected: previously the request carried `volume=100`, now it carries no `volume` at all and the server applies its own default of 100. End-to-end behavior is identical.
+- Callers that explicitly passed `volume=N` continue to work unchanged. Only the combination `volume=N, target_lufs=M` (which the server would have rejected anyway) now raises locally.
+
 ## [0.0.1] - 2025-11-12
 
 ### Added

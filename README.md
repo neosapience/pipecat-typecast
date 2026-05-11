@@ -82,10 +82,17 @@ params = TypecastInputParams(
         emotion_intensity=1.3,       # 0.0 - 2.0
     ),
     output_options=OutputOptions(
-        volume=110,                  # 0 - 200 (percent)
+        volume=110,                  # 0 - 200 (percent). Defaults to None
+                                     # so the server-side default of 100
+                                     # kicks in when neither this nor
+                                     # `target_lufs` is set.
         audio_pitch=2,               # -12 to 12 (semitones)
         audio_tempo=1.05,            # 0.5 - 2.0 (playback speed)
         audio_format="wav",          # Only 'wav' supported
+        # target_lufs=-16.0,         # Absolute loudness target in LUFS
+                                     # (-70.0 to 0.0). Mutually exclusive
+                                     # with `volume` — leave `volume` unset
+                                     # when using `target_lufs`.
     ),
 )
 
@@ -160,6 +167,8 @@ tts = TypecastTTSService(
 | `emotion_intensity` | 0.0 - 2.0 | Values > 1.0 increase expressiveness |
 | `audio_pitch` | -12 to 12 | Semitone adjustment |
 | `audio_tempo` | 0.5 - 2.0 | Recommended: 0.85 - 1.15 |
+| `volume` | 0 - 200 | Defaults to `None` (server-side default of 100 applies). Mutually exclusive with `target_lufs`. |
+| `target_lufs` | -70.0 to 0.0 | Absolute loudness normalization target in LUFS. Server rejects requests that set both `target_lufs` and `volume` — leave `volume` unset when using `target_lufs`, or the model raises a `ValidationError` locally. |
 | `seed` | integer | Deterministic synthesis for identical text |
 
 ---
