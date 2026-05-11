@@ -119,12 +119,18 @@ class TestOutputOptions:
 
     @pytest.mark.unit
     def test_default_values(self):
-        """Test default values are set correctly."""
+        """Test default values are set correctly.
+
+        `volume` defaults to ``None`` so it does not collide with
+        `target_lufs`; the server-side default of 100 applies when both
+        are unset.
+        """
         options = OutputOptions()
-        assert options.volume == 100
+        assert options.volume is None
         assert options.audio_pitch == 0
         assert options.audio_tempo == 1.0
         assert options.audio_format == "wav"
+        assert options.target_lufs is None
 
     @pytest.mark.unit
     def test_volume_bounds(self):
@@ -161,6 +167,44 @@ class TestOutputOptions:
 
         with pytest.raises(ValidationError):
             OutputOptions(audio_tempo=2.1)
+
+    @pytest.mark.unit
+    def test_target_lufs_bounds(self):
+        """Target LUFS must be within the documented -70.0 to 0.0 range."""
+        OutputOptions(target_lufs=-70.0)
+        OutputOptions(target_lufs=-14.0)
+        OutputOptions(target_lufs=0.0)
+
+        with pytest.raises(ValidationError):
+            OutputOptions(target_lufs=-70.1)
+
+        with pytest.raises(ValidationError):
+            OutputOptions(target_lufs=0.1)
+
+    @pytest.mark.unit
+    def test_target_lufs_alone_is_accepted(self):
+        """Setting only target_lufs (volume left unset) is the supported path."""
+        opts = OutputOptions(target_lufs=-16.0)
+        assert opts.target_lufs == -16.0
+        assert opts.volume is None
+        # The dumped payload must not include `volume` so the server does not
+        # see both fields and reject the request.
+        dumped = opts.model_dump(exclude_none=True)
+        assert "volume" not in dumped
+        assert dumped["target_lufs"] == -16.0
+
+    @pytest.mark.unit
+    def test_target_lufs_with_explicit_volume_is_rejected(self):
+        """Volume + target_lufs together must raise — server-side they are mutually exclusive."""
+        with pytest.raises(ValidationError, match="mutually exclusive"):
+            OutputOptions(volume=120, target_lufs=-16.0)
+
+        # Even volume=100 (the historical default) is rejected when paired
+        # with target_lufs, because in this version volume defaults to None
+        # and an explicit 100 is interpreted as the caller really wanting
+        # volume to win.
+        with pytest.raises(ValidationError, match="mutually exclusive"):
+            OutputOptions(volume=100, target_lufs=-14.0)
 
 
 class TestTypecastInputParams:
