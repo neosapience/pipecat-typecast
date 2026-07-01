@@ -8,6 +8,7 @@
 
 from __future__ import annotations
 
+import inspect
 import os
 from typing import AsyncGenerator, Dict, Literal, Optional, Union
 
@@ -28,7 +29,7 @@ AUTHORIZATION_HEADER = "X-API-KEY"
 DEFAULT_BASE_URL = "https://api.typecast.ai/v1/text-to-speech"
 DEFAULT_MODEL = "ssfm-v30"
 DEFAULT_SAMPLE_RATE = 44100
-DEFAULT_VOICE_ID = "tc_62a8975e695ad26f7fb514d1"
+DEFAULT_VOICE_ID = "tc_672c5f5ce59fac2a48faeaee"
 
 ISO2_TO_ISO3_LANGUAGE_MAP: Dict[str, str] = {
     # Common languages (ssfm-v21 & ssfm-v30)
@@ -261,8 +262,8 @@ class TypecastTTSService(TTSService):
         """
         super().__init__(sample_rate=sample_rate, **kwargs)
 
-        api_key = os.getenv("TYPECAST_API_KEY")
-        voice_id = os.getenv("TYPECAST_VOICE_ID", DEFAULT_VOICE_ID)
+        api_key = api_key or os.getenv("TYPECAST_API_KEY")
+        voice_id = voice_id or os.getenv("TYPECAST_VOICE_ID", DEFAULT_VOICE_ID)
 
         if not api_key:
             raise ValueError("Typecast API key is required.")
@@ -289,8 +290,11 @@ class TypecastTTSService(TTSService):
             "output": output_config,
         }
 
-        self.set_model_name(model)
-        self.set_voice(voice_id)
+        if hasattr(self, "set_model_name"):
+            self.set_model_name(model)
+        set_voice = getattr(self, "set_voice", None)
+        if set_voice and not inspect.iscoroutinefunction(set_voice):
+            set_voice(voice_id)
 
     def can_generate_metrics(self) -> bool:
         """Return whether the service can generate metrics."""

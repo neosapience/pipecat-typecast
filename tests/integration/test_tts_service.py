@@ -59,6 +59,18 @@ class TestTypecastTTSServiceInit:
         assert service._settings["prompt"]["emotion_intensity"] == 1.5
 
     @pytest.mark.integration
+    def test_init_prefers_explicit_credentials(self, mock_env, mock_aiohttp_session):
+        """Test explicit credentials override environment variables."""
+        service = TypecastTTSService(
+            aiohttp_session=mock_aiohttp_session,
+            api_key="explicit-api-key",
+            voice_id="tc_explicit_voice_id",
+        )
+
+        assert service._api_key == "explicit-api-key"
+        assert service._settings["voice_id"] == "tc_explicit_voice_id"
+
+    @pytest.mark.integration
     def test_init_with_smart_prompt(self, mock_env, mock_aiohttp_session):
         """Test initialization with SmartPromptOptions."""
         params = TypecastInputParams(

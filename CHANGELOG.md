@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.1] - 2026-07-01
+
+### Fixed
+
+- Explicit `api_key` and `voice_id` constructor arguments now override environment variables as documented.
+- `TypecastTTSService` initialization now works with newer Pipecat versions that no longer expose `set_model_name`.
+
+### Changed
+
+- Added an explicit `websockets` dependency for compatibility with Pipecat versions that import it from `pipecat.services.tts_service`.
+
 ## [0.2.0] - 2026-05-11
 
 ### Added

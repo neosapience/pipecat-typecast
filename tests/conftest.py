@@ -97,4 +97,4 @@ def real_api_key():
 @pytest.fixture
 def real_voice_id():
     """Get real voice ID from environment for E2E tests."""
-    return os.getenv("TYPECAST_VOICE_ID", "tc_62a8975e695ad26f7fb514d1")
+    return os.getenv("TYPECAST_VOICE_ID", "tc_672c5f5ce59fac2a48faeaee")

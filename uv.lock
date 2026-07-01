@@ -2354,13 +2354,14 @@ sdist = { url = "https://files.pythonhosted.org/packages/6d/c8/19e9edb707581431c
 
 [[package]]
 name = "pipecat-ai-typecast"
-version = "0.2.0"
+version = "0.2.1"
 source = { editable = "." }
 dependencies = [
     { name = "aiohttp" },
     { name = "loguru" },
     { name = "pipecat-ai" },
     { name = "pydantic" },
+    { name = "websockets" },
 ]
 
 [package.dev-dependencies]
@@ -2385,6 +2386,7 @@ requires-dist = [
     { name = "loguru", specifier = ">=0.7.0" },
     { name = "pipecat-ai", specifier = ">=0.0.94" },
     { name = "pydantic", specifier = ">=2.0.0" },
+    { name = "websockets", specifier = ">=12.0" },
 ]
 
 [package.metadata.requires-dev]
