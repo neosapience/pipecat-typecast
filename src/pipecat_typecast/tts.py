@@ -419,7 +419,11 @@ class TypecastTTSService(TTSService):
         voice_id = self._settings.get("voice_id", DEFAULT_VOICE_ID)
         prompt = _sdk_prompt(prompt_options)
 
-        if self._settings.get("streaming", True) and output_options.volume is None:
+        if (
+            self._settings.get("streaming", True)
+            and output_options.volume is None
+            and output_options.target_lufs is None
+        ):
             request = TTSRequestStream(
                 text=text,
                 voice_id=voice_id,

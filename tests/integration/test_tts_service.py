@@ -216,6 +216,33 @@ class TestTypecastTTSServiceRunTTS:
         assert request.output.volume == 110
         assert any(isinstance(frame, TTSAudioRawFrame) for frame in frames)
 
+    @pytest.mark.integration
+    async def test_run_tts_target_lufs_uses_non_streaming_sdk(
+        self, mock_env, mock_aiohttp_session
+    ):
+        """Test that loudness-normalized requests use the non-streaming SDK endpoint."""
+        params = TypecastInputParams(
+            output_options=OutputOptions(target_lufs=-16.0),
+        )
+        service = TypecastTTSService(
+            aiohttp_session=mock_aiohttp_session,
+            params=params,
+        )
+        service._client.text_to_speech = AsyncMock(
+            return_value=TTSResponse(audio_data=b"RIFF" + b"\x00" * 80, duration=1.0)
+        )
+        service._client.text_to_speech_stream = MagicMock()
+
+        frames = []
+        async for frame in service.run_tts("Test text"):
+            frames.append(frame)
+
+        service._client.text_to_speech.assert_awaited_once()
+        service._client.text_to_speech_stream.assert_not_called()
+        request = service._client.text_to_speech.call_args.args[0]
+        assert request.output.target_lufs == -16.0
+        assert any(isinstance(frame, TTSAudioRawFrame) for frame in frames)
+
 
 class TestTypecastTTSServiceLanguage:
     """Tests for language handling in TypecastTTSService."""
