@@ -77,6 +77,7 @@ from pipecat_typecast.tts import (
 )
 
 params = TypecastInputParams(
+    streaming=False,                  # Required when using volume.
     prompt_options=PresetPromptOptions(
         emotion_preset="happy",      # normal | happy | sad | angry | whisper | toneup | tonedown
         emotion_intensity=1.3,       # 0.0 - 2.0
@@ -170,6 +171,7 @@ tts = TypecastTTSService(
 | `volume` | 0 - 200 | Defaults to `None` (server-side default of 100 applies). Mutually exclusive with `target_lufs`. |
 | `target_lufs` | -70.0 to 0.0 | Absolute loudness normalization target in LUFS. Server rejects requests that set both `target_lufs` and `volume` — leave `volume` unset when using `target_lufs`, or the model raises a `ValidationError` locally. |
 | `seed` | integer | Deterministic synthesis for identical text |
+| `streaming` | boolean | Defaults to `True` and uses Typecast's HTTP streaming endpoint. Set `False` for volume-based non-streaming synthesis. |
 
 ---
 
@@ -195,7 +197,8 @@ The bot will create a call (e.g. Daily room) and speak responses using Typecast 
 | Requirement | Version |
 |-------------|---------|
 | Pipecat | v0.0.94+ (tested with v0.0.94 and v1.4.0) |
-| Python | 3.10+ |
+| typecast-python | v0.3.8+ |
+| Python | 3.11+ |
 | Transports | Daily / Twilio / WebRTC |
 
 ---

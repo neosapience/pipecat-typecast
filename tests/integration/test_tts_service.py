@@ -5,8 +5,15 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import aiohttp
 import pytest
 from pipecat.frames.frames import ErrorFrame, TTSAudioRawFrame, TTSStartedFrame, TTSStoppedFrame
+from typecast.exceptions import BadRequestError
+from typecast.models import TTSResponse
 
-from pipecat_typecast import PresetPromptOptions, SmartPromptOptions, TypecastInputParams
+from pipecat_typecast import (
+    OutputOptions,
+    PresetPromptOptions,
+    SmartPromptOptions,
+    TypecastInputParams,
+)
 from pipecat_typecast.tts import (
     DEFAULT_BASE_URL,
     DEFAULT_MODEL,
@@ -55,8 +62,9 @@ class TestTypecastTTSServiceInit:
         )
 
         assert service._settings["model"] == "ssfm-v21"
-        assert service._settings["prompt"]["emotion_preset"] == "happy"
-        assert service._settings["prompt"]["emotion_intensity"] == 1.5
+        prompt = service._settings["prompt"]
+        assert prompt.emotion_preset == "happy"
+        assert prompt.emotion_intensity == 1.5
 
     @pytest.mark.integration
     def test_init_prefers_explicit_credentials(self, mock_env, mock_aiohttp_session):
@@ -85,8 +93,9 @@ class TestTypecastTTSServiceInit:
             params=params,
         )
 
-        assert service._settings["prompt"]["emotion_type"] == "smart"
-        assert service._settings["prompt"]["previous_text"] == "Hello!"
+        prompt = service._settings["prompt"]
+        assert prompt.emotion_type == "smart"
+        assert prompt.previous_text == "Hello!"
 
     @pytest.mark.integration
     def test_can_generate_metrics(self, mock_env, mock_aiohttp_session):
@@ -106,23 +115,10 @@ class TestTypecastTTSServiceRunTTS:
     @pytest.mark.integration
     async def test_run_tts_success(self, service, sample_audio_data):
         """Test successful TTS generation."""
-        # Create mock response
-        mock_response = AsyncMock()
-        mock_response.status = 200
-        mock_response.content = MagicMock()
-
-        # Create async iterator for chunked content
         async def async_iter():
             yield sample_audio_data
 
-        mock_response.content.iter_chunked = MagicMock(return_value=async_iter())
-
-        # Mock context manager
-        mock_context = AsyncMock()
-        mock_context.__aenter__.return_value = mock_response
-        mock_context.__aexit__.return_value = None
-
-        service._session.post = MagicMock(return_value=mock_context)
+        service._client.text_to_speech_stream = MagicMock(return_value=async_iter())
 
         # Collect frames
         frames = []
@@ -134,24 +130,16 @@ class TestTypecastTTSServiceRunTTS:
         assert TTSStartedFrame in frame_types
         assert TTSStoppedFrame in frame_types
 
-        # Verify API was called
-        service._session.post.assert_called_once()
-        call_args = service._session.post.call_args
-        assert call_args[0][0] == DEFAULT_BASE_URL
+        service._client.text_to_speech_stream.assert_called_once()
 
     @pytest.mark.integration
     async def test_run_tts_api_error(self, service):
         """Test handling of API errors."""
-        # Create mock error response
-        mock_response = AsyncMock()
-        mock_response.status = 400
-        mock_response.json = AsyncMock(return_value={"message": "Invalid request"})
+        async def raise_error():
+            raise BadRequestError("Bad request: Invalid request")
+            yield b""
 
-        mock_context = AsyncMock()
-        mock_context.__aenter__.return_value = mock_response
-        mock_context.__aexit__.return_value = None
-
-        service._session.post = MagicMock(return_value=mock_context)
+        service._client.text_to_speech_stream = MagicMock(return_value=raise_error())
 
         # Collect frames
         frames = []
@@ -161,7 +149,7 @@ class TestTypecastTTSServiceRunTTS:
         # Should yield ErrorFrame
         error_frames = [f for f in frames if isinstance(f, ErrorFrame)]
         assert len(error_frames) >= 1
-        assert "400" in str(error_frames[0].error)
+        assert "Invalid request" in str(error_frames[0].error)
 
     @pytest.mark.integration
     async def test_run_tts_invalid_audio_format(self, mock_env, mock_aiohttp_session):
@@ -189,38 +177,71 @@ class TestTypecastTTSServiceRunTTS:
     @pytest.mark.integration
     async def test_run_tts_request_payload(self, service, sample_audio_data):
         """Test that request payload is correctly constructed."""
-        mock_response = AsyncMock()
-        mock_response.status = 200
-        mock_response.content = MagicMock()
-
         async def async_iter():
             yield sample_audio_data
 
-        mock_response.content.iter_chunked = MagicMock(return_value=async_iter())
-
-        mock_context = AsyncMock()
-        mock_context.__aenter__.return_value = mock_response
-        mock_context.__aexit__.return_value = None
-
-        service._session.post = MagicMock(return_value=mock_context)
+        service._client.text_to_speech_stream = MagicMock(return_value=async_iter())
 
         async for _ in service.run_tts("Test text"):
             pass
 
-        # Verify payload structure
-        call_kwargs = service._session.post.call_args[1]
-        payload = call_kwargs["json"]
+        request = service._client.text_to_speech_stream.call_args.args[0]
 
-        assert payload["text"] == "Test text"
-        assert payload["model"] == DEFAULT_MODEL
-        assert payload["voice_id"] == "tc_test_voice_id"
-        assert "prompt" in payload
-        assert "output" in payload
+        assert request.text == "Test text"
+        assert request.model == DEFAULT_MODEL
+        assert request.voice_id == "tc_test_voice_id"
+        assert request.prompt is not None
+        assert request.output is not None
 
-        # Verify headers
-        headers = call_kwargs["headers"]
-        assert headers["X-API-KEY"] == "test-api-key-12345"
-        assert headers["Content-Type"] == "application/json"
+    @pytest.mark.integration
+    async def test_run_tts_volume_uses_non_streaming_sdk(self, mock_env, mock_aiohttp_session):
+        """Test that volume-based requests use the non-streaming SDK endpoint."""
+        params = TypecastInputParams(
+            output_options=OutputOptions(volume=110),
+        )
+        service = TypecastTTSService(
+            aiohttp_session=mock_aiohttp_session,
+            params=params,
+        )
+        service._client.text_to_speech = AsyncMock(
+            return_value=TTSResponse(audio_data=b"RIFF" + b"\x00" * 80, duration=1.0)
+        )
+
+        frames = []
+        async for frame in service.run_tts("Test text"):
+            frames.append(frame)
+
+        service._client.text_to_speech.assert_awaited_once()
+        request = service._client.text_to_speech.call_args.args[0]
+        assert request.output.volume == 110
+        assert any(isinstance(frame, TTSAudioRawFrame) for frame in frames)
+
+    @pytest.mark.integration
+    async def test_run_tts_target_lufs_uses_non_streaming_sdk(
+        self, mock_env, mock_aiohttp_session
+    ):
+        """Test that loudness-normalized requests use the non-streaming SDK endpoint."""
+        params = TypecastInputParams(
+            output_options=OutputOptions(target_lufs=-16.0),
+        )
+        service = TypecastTTSService(
+            aiohttp_session=mock_aiohttp_session,
+            params=params,
+        )
+        service._client.text_to_speech = AsyncMock(
+            return_value=TTSResponse(audio_data=b"RIFF" + b"\x00" * 80, duration=1.0)
+        )
+        service._client.text_to_speech_stream = MagicMock()
+
+        frames = []
+        async for frame in service.run_tts("Test text"):
+            frames.append(frame)
+
+        service._client.text_to_speech.assert_awaited_once()
+        service._client.text_to_speech_stream.assert_not_called()
+        request = service._client.text_to_speech.call_args.args[0]
+        assert request.output.target_lufs == -16.0
+        assert any(isinstance(frame, TTSAudioRawFrame) for frame in frames)
 
 
 class TestTypecastTTSServiceLanguage:

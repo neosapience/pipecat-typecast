@@ -1,11 +1,11 @@
 [project]
 name = "pipecat-ai-typecast"
-version = "0.2.1"
+version = "0.3.0"
 description = "Typecast is an AI text-to-speech API that converts text into lifelike, expressive speech in many languages."
 license = "BSD-2-Clause"
 license-files = ["LICENSE"]
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 keywords = ["pipecat", "text-to-speech", "ai"]
 authors = [
     {name = "Neosapience", email = "help@typecast.ai"}
@@ -24,6 +24,7 @@ dependencies = [
     "aiohttp>=3.9.0",
     "loguru>=0.7.0",
     "pydantic>=2.0.0",
+    "typecast-python>=0.3.8",
     "websockets>=12.0",
 ]
 
