@@ -10,7 +10,8 @@ from __future__ import annotations
 
 import inspect
 import os
-from typing import AsyncGenerator, Dict, Literal, Optional, Union
+from typing import AsyncGenerator, AsyncIterator, Dict, Literal, Optional, Union
+from urllib.parse import urlparse
 
 import aiohttp
 from loguru import logger
@@ -24,8 +25,18 @@ from pipecat.services.tts_service import TTSService
 from pipecat.transcriptions.language import Language
 from pipecat.utils.tracing.service_decorators import traced_tts
 from pydantic import BaseModel, Field, model_validator
+from typecast import AsyncTypecast
+from typecast.models import (
+    Output,
+    OutputStream,
+    PresetPrompt,
+    Prompt,
+    SmartPrompt,
+    TTSRequest,
+    TTSRequestStream,
+    TTSResponse,
+)
 
-AUTHORIZATION_HEADER = "X-API-KEY"
 DEFAULT_BASE_URL = "https://api.typecast.ai/v1/text-to-speech"
 DEFAULT_MODEL = "ssfm-v30"
 DEFAULT_SAMPLE_RATE = 44100
@@ -219,6 +230,32 @@ class TypecastInputParams(BaseModel):
     seed: Optional[int] = Field(default=None, ge=0)
     prompt_options: TypecastPromptOptions = Field(default_factory=PresetPromptOptions)
     output_options: OutputOptions = Field(default_factory=OutputOptions)
+    streaming: bool = Field(
+        default=True,
+        description=(
+            "Use Typecast's HTTP streaming endpoint by default. Set to False "
+            "to use the non-streaming endpoint, including when volume is required."
+        ),
+    )
+
+
+def _api_host_from_base_url(base_url: str) -> str:
+    """Return the Typecast API host from a legacy endpoint URL or host."""
+    parsed = urlparse(base_url.rstrip("/"))
+    if not parsed.scheme or not parsed.netloc:
+        return base_url.rstrip("/")
+    return f"{parsed.scheme}://{parsed.netloc}"
+
+
+def _sdk_prompt(prompt_options: TypecastPromptOptions):
+    """Convert plugin prompt options to typecast-python SDK models."""
+    data = prompt_options.model_dump(exclude_none=True)
+    emotion_type = data.get("emotion_type")
+    if emotion_type == "smart":
+        return SmartPrompt(**data)
+    if emotion_type == "preset":
+        return PresetPrompt(**data)
+    return Prompt(**data)
 
 
 class TypecastTTSService(TTSService):
@@ -270,15 +307,17 @@ class TypecastTTSService(TTSService):
 
         params = params or TypecastTTSService.InputParams()
 
-        self._session = aiohttp_session
         self._base_url = base_url.rstrip("/")
         self._api_key = api_key
+        self._client = AsyncTypecast(
+            host=_api_host_from_base_url(self._base_url),
+            api_key=api_key,
+            session=aiohttp_session,
+        )
 
         language_code = (
             self.language_to_service_language(params.language) if params.language else None
         )
-        prompt_config = params.prompt_options.model_dump(exclude_none=True)
-        output_config = params.output_options.model_dump(exclude_none=True)
 
         self._settings = {
             "base_url": self._base_url,
@@ -286,8 +325,9 @@ class TypecastTTSService(TTSService):
             "voice_id": voice_id,
             "language": language_code,
             "seed": params.seed,
-            "prompt": prompt_config,
-            "output": output_config,
+            "prompt": params.prompt_options,
+            "output": params.output_options,
+            "streaming": params.streaming,
         }
 
         if hasattr(self, "set_model_name"):
@@ -306,18 +346,13 @@ class TypecastTTSService(TTSService):
 
     @traced_tts
     async def run_tts(self, text: str) -> AsyncGenerator[Frame, None]:
-        """Generate speech audio using the Typecast REST API."""
+        """Generate speech audio using the Typecast Python SDK."""
         logger.debug(f"{self}: Generating TTS [{text}]")
 
-        headers = {
-            "Content-Type": "application/json",
-            AUTHORIZATION_HEADER: self._api_key,
-        }
+        prompt_options: TypecastPromptOptions = self._settings["prompt"]
+        output_options: OutputOptions = self._settings["output"]
 
-        prompt_options = dict(self._settings.get("prompt") or {})
-        output_options = dict(self._settings.get("output") or {})
-
-        audio_format = output_options.get("audio_format", "wav")
+        audio_format = output_options.audio_format
         if audio_format != "wav":
             error_message = (
                 f"TypecastTTSService only supports 'wav' audio_format, not '{audio_format}'."
@@ -326,70 +361,30 @@ class TypecastTTSService(TTSService):
             yield ErrorFrame(error_message)
             return
 
-        output_options["audio_format"] = "wav"
-
-        payload: Dict[str, object] = {
-            "text": text,
-            "model": self._settings.get("model", DEFAULT_MODEL),
-            "voice_id": self._settings.get("voice_id", DEFAULT_VOICE_ID),
-            "prompt": prompt_options,
-            "output": output_options,
-        }
-
-        language = self._settings.get("language")
-        if language:
-            payload["language"] = language
-
-        seed = self._settings.get("seed")
-        if seed is not None:
-            payload["seed"] = seed
-
-        base_url = self._settings.get("base_url", self._base_url)
         ttfb_stopped = False
 
         try:
             await self.start_ttfb_metrics()
 
-            async with self._session.post(base_url, headers=headers, json=payload) as response:
-                if response.status != 200:
-                    error_detail: str
-                    try:
-                        error_body = await response.json()
-                        error_detail = error_body.get("message", str(error_body))
-                    except Exception:
-                        error_detail = await response.text()
+            chunk_iterator = await self._audio_chunks(text, prompt_options, output_options)
+            first_chunk = await anext(chunk_iterator, None)
 
-                    logger.error(
-                        f"{self}: Typecast API error (status {response.status}): {error_detail}"
-                    )
-                    yield ErrorFrame(
-                        f"Error from Typecast API: status {response.status}, detail: {error_detail}"
-                    )
-                    return
+            await self.start_tts_usage_metrics(text)
+            yield TTSStartedFrame()
 
-                await self.start_tts_usage_metrics(text)
-                yield TTSStartedFrame()
-
-                # Use default chunk size if sample_rate not set yet
-                # (sample_rate * 0.5s * 2 bytes/sample)
-                effective_chunk_size = self.chunk_size or int(
-                    DEFAULT_SAMPLE_RATE * 0.5 * 2
-                )
-                chunk_iterator = response.content.iter_chunked(effective_chunk_size)
-                first_frame = True
-
-                async for frame in self._stream_audio_frames_from_iterator(
-                    chunk_iterator, strip_wav_header=True
-                ):
-                    if first_frame:
-                        await self.stop_ttfb_metrics()
-                        ttfb_stopped = True
-                        first_frame = False
-                    yield frame
-
-                if first_frame and not ttfb_stopped:
+            first_frame = True
+            async for frame in self._stream_audio_frames_from_iterator(
+                self._prepend_chunk(first_chunk, chunk_iterator), strip_wav_header=True
+            ):
+                if first_frame:
                     await self.stop_ttfb_metrics()
                     ttfb_stopped = True
+                    first_frame = False
+                yield frame
+
+            if first_frame and not ttfb_stopped:
+                await self.stop_ttfb_metrics()
+                ttfb_stopped = True
 
         except Exception as exc:
             logger.exception(f"{self}: Error generating audio: {exc}")
@@ -399,3 +394,70 @@ class TypecastTTSService(TTSService):
                 await self.stop_ttfb_metrics()
             logger.debug(f"{self}: Finished TTS [{text}]")
             yield TTSStoppedFrame()
+
+    async def _prepend_chunk(
+        self,
+        first_chunk: Optional[bytes],
+        chunks: AsyncIterator[bytes],
+    ) -> AsyncIterator[bytes]:
+        """Yield a pre-read chunk followed by the remaining chunks."""
+        if first_chunk is not None:
+            yield first_chunk
+        async for chunk in chunks:
+            yield chunk
+
+    async def _audio_chunks(
+        self,
+        text: str,
+        prompt_options: TypecastPromptOptions,
+        output_options: OutputOptions,
+    ) -> AsyncIterator[bytes]:
+        """Return audio chunks from streaming or non-streaming SDK calls."""
+        language = self._settings.get("language")
+        seed = self._settings.get("seed")
+        model = self._settings.get("model", DEFAULT_MODEL)
+        voice_id = self._settings.get("voice_id", DEFAULT_VOICE_ID)
+        prompt = _sdk_prompt(prompt_options)
+
+        if self._settings.get("streaming", True) and output_options.volume is None:
+            request = TTSRequestStream(
+                text=text,
+                voice_id=voice_id,
+                model=model,
+                language=language,
+                prompt=prompt,
+                output=OutputStream(
+                    audio_pitch=output_options.audio_pitch,
+                    audio_tempo=output_options.audio_tempo,
+                    audio_format="wav",
+                    target_lufs=output_options.target_lufs,
+                ),
+                seed=seed,
+            )
+            return self._client.text_to_speech_stream(
+                request,
+                chunk_size=self.chunk_size or int(DEFAULT_SAMPLE_RATE * 0.5 * 2),
+            )
+
+        response: TTSResponse = await self._client.text_to_speech(
+            TTSRequest(
+                text=text,
+                voice_id=voice_id,
+                model=model,
+                language=language,
+                prompt=prompt,
+                output=Output(
+                    volume=output_options.volume,
+                    audio_pitch=output_options.audio_pitch,
+                    audio_tempo=output_options.audio_tempo,
+                    audio_format="wav",
+                    target_lufs=output_options.target_lufs,
+                ),
+                seed=seed,
+            )
+        )
+
+        async def single_chunk() -> AsyncIterator[bytes]:
+            yield response.audio_data
+
+        return single_chunk()
