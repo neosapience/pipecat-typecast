@@ -1,8 +1,7 @@
 """Integration tests for TypecastTTSService with mocked API responses."""
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
-import aiohttp
 import pytest
 from pipecat.frames.frames import ErrorFrame, TTSAudioRawFrame, TTSStartedFrame, TTSStoppedFrame
 from typecast.exceptions import BadRequestError
@@ -17,8 +16,6 @@ from pipecat_typecast import (
 from pipecat_typecast.tts import (
     DEFAULT_BASE_URL,
     DEFAULT_MODEL,
-    DEFAULT_SAMPLE_RATE,
-    DEFAULT_VOICE_ID,
     TypecastTTSService,
 )
 

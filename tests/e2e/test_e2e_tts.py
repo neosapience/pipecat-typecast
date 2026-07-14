@@ -6,7 +6,7 @@ Run with: pytest -m e2e
 
 import aiohttp
 import pytest
-from pipecat.frames.frames import ErrorFrame, TTSAudioRawFrame, TTSStartedFrame, TTSStoppedFrame
+from pipecat.frames.frames import ErrorFrame, TTSAudioRawFrame
 from pipecat.transcriptions.language import Language
 
 from pipecat_typecast import (

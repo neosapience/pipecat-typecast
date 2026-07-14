@@ -1,7 +1,7 @@
 """Pytest configuration and shared fixtures."""
 
 import os
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 
 import aiohttp
 import pytest
