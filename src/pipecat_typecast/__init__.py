@@ -13,10 +13,10 @@ from pipecat_typecast.tts import (
 )
 
 try:
-	version = _get_version("pipecat-ai-typecast")
+	__version__ = _get_version("pipecat-ai-typecast")
 except Exception:
 	# Fallback for development or when package is not installed
-	version = "0.0.1"
+	__version__ = "0.0.1"
 
 __all__ = [
 	"TypecastTTSService",
@@ -26,5 +26,5 @@ __all__ = [
 	"SmartPromptOptions",
 	"TypecastPromptOptions",
 	"OutputOptions",
+	"__version__",
 ]
-
