@@ -30,7 +30,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-    "pipecat-ai[daily,openai,deepgram,runner,webrtc,local-smart-turn-v3]>=0.0.94",
+    "pipecat-ai[daily,openai,deepgram,runner,webrtc]>=0.0.94",
     "python-dotenv>=1.0.1",
     "onnxruntime>=1.23.2",
     "ruff>=0.12.11",
