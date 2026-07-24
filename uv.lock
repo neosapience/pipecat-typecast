@@ -3302,7 +3302,7 @@ wheels = [
 
 [[package]]
 name = "typecast-python"
-version = "0.3.10"
+version = "0.3.11"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aiohttp" },
@@ -3310,9 +3310,9 @@ dependencies = [
     { name = "requests" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/4d/d6/4bd26885ad7d0b3ea7244c436cf9a71a03c49679e104821606c702efab85/typecast_python-0.3.10.tar.gz", hash = "sha256:680c99197b98643e11bb5e6f6d44b9eb87dd95e080615b7b916efcf9d57dc64e", size = 28923, upload-time = "2026-07-16T11:17:43.938Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/c7/cb/9194cd3a38aa1db2912c088b63c18651aaf4c4aa6049cc0eaae1defbf983/typecast_python-0.3.11.tar.gz", hash = "sha256:f35f29c7b929f9d1299cedeb5e20c46e76f88e05bcc77b0c4ba3b41fb0ac39e3", size = 30374, upload-time = "2026-07-21T02:49:04.383Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/cd/38/770dc3d50139ab00fc8e90a0cd301e7573d173985afe79753110cbea213a/typecast_python-0.3.10-py3-none-any.whl", hash = "sha256:7648a0ecb458ab596979169d862772888f363598b918d08f095f33cdcad82fa3", size = 38286, upload-time = "2026-07-16T11:17:42.694Z" },
+    { url = "https://files.pythonhosted.org/packages/7a/86/acdb507f6faca5d6847557288ead4da5d23b6932ab3ec404827dfebab260/typecast_python-0.3.11-py3-none-any.whl", hash = "sha256:3a0d63f63f8d30f7a707051f7e1bb644641e4eb934f142978396580b30cfaed8", size = 40323, upload-time = "2026-07-21T02:49:03.159Z" },
 ]
 
 [[package]]
