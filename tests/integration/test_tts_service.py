@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from pipecat.frames.frames import ErrorFrame, TTSAudioRawFrame, TTSStartedFrame, TTSStoppedFrame
-from typecast.exceptions import BadRequestError
+from typecast.exceptions import BadRequestError, UnprocessableEntityError
 from typecast.models import TTSResponse
 
 from pipecat_typecast import (
@@ -147,6 +147,30 @@ class TestTypecastTTSServiceRunTTS:
         error_frames = [f for f in frames if isinstance(f, ErrorFrame)]
         assert len(error_frames) >= 1
         assert "Invalid request" in str(error_frames[0].error)
+
+    @pytest.mark.integration
+    async def test_run_tts_text_not_synthesizable_is_not_retried(self, service):
+        """Test that unsynthesizable text is surfaced without retrying."""
+        message = (
+            "Validation error: "
+            '{"error_code":"TEXT_NOT_SYNTHESIZABLE",'
+            '"message":"The input text contains characters or symbols that cannot be '
+            'synthesized into speech. Please check your input text."}'
+        )
+
+        async def raise_error():
+            raise UnprocessableEntityError(message)
+            yield b""
+
+        stream_mock = MagicMock(return_value=raise_error())
+        service._client.text_to_speech_stream = stream_mock
+
+        frames = [frame async for frame in service.run_tts("????")]
+
+        error_frames = [frame for frame in frames if isinstance(frame, ErrorFrame)]
+        assert len(error_frames) == 1
+        assert "TEXT_NOT_SYNTHESIZABLE" in str(error_frames[0].error)
+        stream_mock.assert_called_once()
 
     @pytest.mark.integration
     async def test_run_tts_invalid_audio_format(self, mock_env, mock_aiohttp_session):
