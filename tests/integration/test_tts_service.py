@@ -196,8 +196,10 @@ class TestTypecastTTSServiceRunTTS:
         assert "wav" in str(error_frames[0].error).lower()
 
     @pytest.mark.integration
-    async def test_run_tts_request_payload(self, service, sample_audio_data):
+    @pytest.mark.parametrize("remove_silence_ms", [None, 0, 300])
+    async def test_run_tts_request_payload(self, service, sample_audio_data, remove_silence_ms):
         """Test that request payload is correctly constructed."""
+        service._settings["output"].remove_silence_ms = remove_silence_ms
         async def async_iter():
             yield sample_audio_data
 
@@ -213,12 +215,20 @@ class TestTypecastTTSServiceRunTTS:
         assert request.voice_id == "tc_test_voice_id"
         assert request.prompt is not None
         assert request.output is not None
+        output = request.output.model_dump(exclude_none=True)
+        if remove_silence_ms is None:
+            assert "remove_silence_ms" not in output
+        else:
+            assert output["remove_silence_ms"] == remove_silence_ms
 
     @pytest.mark.integration
-    async def test_run_tts_volume_uses_non_streaming_sdk(self, mock_env, mock_aiohttp_session):
+    @pytest.mark.parametrize("remove_silence_ms", [None, 0, 300])
+    async def test_run_tts_volume_uses_non_streaming_sdk(
+        self, mock_env, mock_aiohttp_session, remove_silence_ms
+    ):
         """Test that volume-based requests use the non-streaming SDK endpoint."""
         params = TypecastInputParams(
-            output_options=OutputOptions(volume=110),
+            output_options=OutputOptions(volume=110, remove_silence_ms=remove_silence_ms),
         )
         service = TypecastTTSService(
             aiohttp_session=mock_aiohttp_session,
@@ -235,6 +245,11 @@ class TestTypecastTTSServiceRunTTS:
         service._client.text_to_speech.assert_awaited_once()
         request = service._client.text_to_speech.call_args.args[0]
         assert request.output.volume == 110
+        output = request.output.model_dump(exclude_none=True)
+        if remove_silence_ms is None:
+            assert "remove_silence_ms" not in output
+        else:
+            assert output["remove_silence_ms"] == remove_silence_ms
         assert any(isinstance(frame, TTSAudioRawFrame) for frame in frames)
 
     @pytest.mark.integration

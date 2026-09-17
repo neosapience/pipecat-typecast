@@ -174,6 +174,10 @@ class OutputOptions(BaseModel):
     """
 
     volume: Optional[int] = Field(default=None, ge=0, le=200)
+    remove_silence_ms: Optional[int] = Field(
+        default=None, strict=True, ge=0, le=1000,
+        description="Remaining detected silence in ms; 0 removes silence, None disables processing.",
+    )
     audio_pitch: int = Field(default=0, ge=-12, le=12)
     audio_tempo: float = Field(default=1.0, ge=0.5, le=2.0)
     audio_format: str = Field(default="wav")
@@ -431,6 +435,7 @@ class TypecastTTSService(TTSService):
                 language=language,
                 prompt=prompt,
                 output=OutputStream(
+                    remove_silence_ms=output_options.remove_silence_ms,
                     audio_pitch=output_options.audio_pitch,
                     audio_tempo=output_options.audio_tempo,
                     audio_format="wav",
@@ -451,6 +456,7 @@ class TypecastTTSService(TTSService):
                 language=language,
                 prompt=prompt,
                 output=Output(
+                    remove_silence_ms=output_options.remove_silence_ms,
                     volume=output_options.volume,
                     audio_pitch=output_options.audio_pitch,
                     audio_tempo=output_options.audio_tempo,
