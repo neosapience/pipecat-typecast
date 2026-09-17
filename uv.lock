@@ -1224,7 +1224,7 @@ name = "importlib-metadata"
 version = "9.0.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "zipp" },
+    { name = "zipp", marker = "python_full_version < '3.12'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/a9/01/15bb152d77b21318514a96f43af312635eb2500c96b55398d020c93d86ea/importlib_metadata-9.0.0.tar.gz", hash = "sha256:a4f57ab599e6a2e3016d7595cfd72eb4661a5106e787a95bcc90c7105b831efc", size = 56405, upload-time = "2026-03-20T06:42:56.999Z" }
 wheels = [
@@ -2141,7 +2141,7 @@ wheels = [
 
 [[package]]
 name = "pipecat-ai-typecast"
-version = "0.3.0"
+version = "0.3.1"
 source = { editable = "." }
 dependencies = [
     { name = "aiohttp" },
@@ -2174,7 +2174,7 @@ requires-dist = [
     { name = "loguru", specifier = ">=0.7.0" },
     { name = "pipecat-ai", specifier = ">=0.0.94" },
     { name = "pydantic", specifier = ">=2.0.0" },
-    { name = "typecast-python", specifier = ">=0.3.8" },
+    { name = "typecast-python", specifier = ">=0.3.15" },
     { name = "websockets", specifier = ">=12.0" },
 ]
 
@@ -3180,7 +3180,7 @@ wheels = [
 
 [[package]]
 name = "typecast-python"
-version = "0.3.14"
+version = "0.3.15"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aiohttp" },
@@ -3188,9 +3188,9 @@ dependencies = [
     { name = "requests" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/0b/53/0bc0e9c2e9cee573104e1a22f2981d80b4ac8dbd5e877078e97c19a5605a/typecast_python-0.3.14.tar.gz", hash = "sha256:22c1fbee455a7f5877b19b5bac3783c2b213d8f212ba7a8dbe8d2ee46aaa1755", size = 31703, upload-time = "2026-08-28T01:54:15.446Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/64/b8/c51fe07877d0a4f424337ef02cf127fe8694ecea14b866c24a81d79496b2/typecast_python-0.3.15.tar.gz", hash = "sha256:836e6659093f3a7d483c058e2d9e281e205bf7a57e94821874f4a13e2348b245", size = 31775, upload-time = "2026-09-17T00:54:24.057Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/3b/02/f1693e6cee8c15955dec36170087f5dc9949eff0278bbcaf06f7bc6573bb/typecast_python-0.3.14-py3-none-any.whl", hash = "sha256:b877c7660403bfd45e8d56743e41e34c3a434c250accad565b7f2e74550415b2", size = 42069, upload-time = "2026-08-28T01:54:16.652Z" },
+    { url = "https://files.pythonhosted.org/packages/bf/33/7b702c835776ef6841bf149d0b655bfe3c3e0948ab4dd9630e95ef4dd126/typecast_python-0.3.15-py3-none-any.whl", hash = "sha256:99f1df325d97aa0b1b9ef7cc3e92b2334a849d2f0b2244a94fe30c096caec323", size = 42140, upload-time = "2026-09-17T00:54:22.705Z" },
 ]
 
 [[package]]

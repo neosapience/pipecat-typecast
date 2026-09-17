@@ -198,6 +198,7 @@ class TestTypecastTTSServiceRunTTS:
     @pytest.mark.integration
     async def test_run_tts_request_payload(self, service, sample_audio_data):
         """Test that request payload is correctly constructed."""
+        service._settings["output"].remove_silence_ms = 0
         async def async_iter():
             yield sample_audio_data
 
@@ -213,12 +214,13 @@ class TestTypecastTTSServiceRunTTS:
         assert request.voice_id == "tc_test_voice_id"
         assert request.prompt is not None
         assert request.output is not None
+        assert request.output.model_dump(exclude_none=True)["remove_silence_ms"] == 0
 
     @pytest.mark.integration
     async def test_run_tts_volume_uses_non_streaming_sdk(self, mock_env, mock_aiohttp_session):
         """Test that volume-based requests use the non-streaming SDK endpoint."""
         params = TypecastInputParams(
-            output_options=OutputOptions(volume=110),
+            output_options=OutputOptions(volume=110, remove_silence_ms=0),
         )
         service = TypecastTTSService(
             aiohttp_session=mock_aiohttp_session,
@@ -235,6 +237,7 @@ class TestTypecastTTSServiceRunTTS:
         service._client.text_to_speech.assert_awaited_once()
         request = service._client.text_to_speech.call_args.args[0]
         assert request.output.volume == 110
+        assert request.output.model_dump(exclude_none=True)["remove_silence_ms"] == 0
         assert any(isinstance(frame, TTSAudioRawFrame) for frame in frames)
 
     @pytest.mark.integration
