@@ -29,9 +29,9 @@ class TestTypecastTTSServiceInit:
         service = TypecastTTSService(aiohttp_session=mock_aiohttp_session)
 
         assert service._api_key == "test-api-key-12345"
-        assert service._settings["voice_id"] == "tc_test_voice_id"
-        assert service._settings["model"] == DEFAULT_MODEL
-        assert service._settings["base_url"] == DEFAULT_BASE_URL
+        assert service._typecast_settings["voice_id"] == "tc_test_voice_id"
+        assert service._typecast_settings["model"] == DEFAULT_MODEL
+        assert service._typecast_settings["base_url"] == DEFAULT_BASE_URL
 
     @pytest.mark.integration
     def test_init_without_api_key_raises(self, mock_aiohttp_session, monkeypatch):
@@ -58,8 +58,8 @@ class TestTypecastTTSServiceInit:
             params=params,
         )
 
-        assert service._settings["model"] == "ssfm-v21"
-        prompt = service._settings["prompt"]
+        assert service._typecast_settings["model"] == "ssfm-v21"
+        prompt = service._typecast_settings["prompt"]
         assert prompt.emotion_preset == "happy"
         assert prompt.emotion_intensity == 1.5
 
@@ -73,7 +73,7 @@ class TestTypecastTTSServiceInit:
         )
 
         assert service._api_key == "explicit-api-key"
-        assert service._settings["voice_id"] == "tc_explicit_voice_id"
+        assert service._typecast_settings["voice_id"] == "tc_explicit_voice_id"
 
     @pytest.mark.integration
     def test_init_with_smart_prompt(self, mock_env, mock_aiohttp_session):
@@ -90,7 +90,7 @@ class TestTypecastTTSServiceInit:
             params=params,
         )
 
-        prompt = service._settings["prompt"]
+        prompt = service._typecast_settings["prompt"]
         assert prompt.emotion_type == "smart"
         assert prompt.previous_text == "Hello!"
 
@@ -128,6 +128,36 @@ class TestTypecastTTSServiceRunTTS:
         assert TTSStoppedFrame in frame_types
 
         service._client.text_to_speech_stream.assert_called_once()
+
+    @pytest.mark.integration
+    async def test_pipeline_settings_startup_and_voice_update(self, service, sample_audio_data):
+        """Keep Pipecat's typed store valid and use runtime voice updates."""
+        pytest.importorskip("pipecat.services.settings")
+        from pipecat.clocks.system_clock import SystemClock
+        from pipecat.frames.frames import StartFrame
+        from pipecat.processors.frame_processor import FrameProcessorSetup
+        from pipecat.services.settings import TTSSettings
+        from pipecat.utils.asyncio.task_manager import TaskManager
+
+        await service.setup(FrameProcessorSetup(
+            clock=SystemClock(), task_manager=TaskManager(), pipeline_worker=MagicMock(),
+        ))
+        await service.start(StartFrame())
+        assert service._settings.voice == "tc_test_voice_id"
+        await service._update_settings(TTSSettings(voice="tc_changed", language="ko"))
+
+        async def audio():
+            yield sample_audio_data
+
+        service._client.text_to_speech_stream = MagicMock(return_value=audio())
+        try:
+            frames = [frame async for frame in service.run_tts("Hello")]
+        finally:
+            await service.cleanup()
+        assert not any(isinstance(frame, ErrorFrame) for frame in frames)
+        request = service._client.text_to_speech_stream.call_args.args[0]
+        assert request.voice_id == "tc_changed"
+        assert request.language == "kor"
 
     @pytest.mark.integration
     async def test_run_tts_api_error(self, service):
@@ -199,7 +229,7 @@ class TestTypecastTTSServiceRunTTS:
     @pytest.mark.parametrize("remove_silence_ms", [None, 0, 300])
     async def test_run_tts_request_payload(self, service, sample_audio_data, remove_silence_ms):
         """Test that request payload is correctly constructed."""
-        service._settings["output"].remove_silence_ms = remove_silence_ms
+        service._typecast_settings["output"].remove_silence_ms = remove_silence_ms
         async def async_iter():
             yield sample_audio_data
 
@@ -295,7 +325,7 @@ class TestTypecastTTSServiceLanguage:
             params=params,
         )
 
-        assert service._settings["language"] == "kor"
+        assert service._typecast_settings["language"] == "kor"
 
     @pytest.mark.integration
     def test_language_none(self, mock_env, mock_aiohttp_session):
@@ -307,4 +337,4 @@ class TestTypecastTTSServiceLanguage:
             params=params,
         )
 
-        assert service._settings["language"] is None
+        assert service._typecast_settings["language"] is None
