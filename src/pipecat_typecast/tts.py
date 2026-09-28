@@ -8,7 +8,6 @@
 
 from __future__ import annotations
 
-import inspect
 import os
 from typing import AsyncGenerator, AsyncIterator, Dict, Literal, Optional, Union
 from urllib.parse import urlparse
@@ -323,7 +322,7 @@ class TypecastTTSService(TTSService):
             self.language_to_service_language(params.language) if params.language else None
         )
 
-        self._settings = {
+        self._typecast_settings = {
             "base_url": self._base_url,
             "model": model,
             "voice_id": voice_id,
@@ -334,11 +333,17 @@ class TypecastTTSService(TTSService):
             "streaming": params.streaming,
         }
 
+        # Preserve Pipecat's settings store for pipeline startup and live updates.
+        if isinstance(self._settings, dict):
+            self._settings.update(self._typecast_settings)
+            self._settings["voice"] = voice_id
+        else:
+            self._settings.model = model
+            self._settings.voice = voice_id
+            self._settings.language = language_code
+            self._sync_model_name_to_metrics()
         if hasattr(self, "set_model_name"):
             self.set_model_name(model)
-        set_voice = getattr(self, "set_voice", None)
-        if set_voice and not inspect.iscoroutinefunction(set_voice):
-            set_voice(voice_id)
 
     def can_generate_metrics(self) -> bool:
         """Return whether the service can generate metrics."""
@@ -353,8 +358,8 @@ class TypecastTTSService(TTSService):
         """Generate speech audio using the Typecast Python SDK."""
         logger.debug(f"{self}: Generating TTS [{text}]")
 
-        prompt_options: TypecastPromptOptions = self._settings["prompt"]
-        output_options: OutputOptions = self._settings["output"]
+        prompt_options: TypecastPromptOptions = self._typecast_settings["prompt"]
+        output_options: OutputOptions = self._typecast_settings["output"]
 
         audio_format = output_options.audio_format
         if audio_format != "wav":
@@ -417,14 +422,18 @@ class TypecastTTSService(TTSService):
         output_options: OutputOptions,
     ) -> AsyncIterator[bytes]:
         """Return audio chunks from streaming or non-streaming SDK calls."""
-        language = self._settings.get("language")
-        seed = self._settings.get("seed")
-        model = self._settings.get("model", DEFAULT_MODEL)
-        voice_id = self._settings.get("voice_id", DEFAULT_VOICE_ID)
+        settings = (
+            self._settings if isinstance(self._settings, dict)
+            else self._settings.given_fields()
+        )
+        language = settings.get("language")
+        seed = self._typecast_settings.get("seed")
+        model = settings.get("model", DEFAULT_MODEL)
+        voice_id = settings.get("voice", settings.get("voice_id", DEFAULT_VOICE_ID))
         prompt = _sdk_prompt(prompt_options)
 
         if (
-            self._settings.get("streaming", True)
+            self._typecast_settings.get("streaming", True)
             and output_options.volume is None
             and output_options.target_lufs is None
         ):
