@@ -174,7 +174,10 @@ class OutputOptions(BaseModel):
 
     volume: Optional[int] = Field(default=None, ge=0, le=200)
     remove_silence_ms: Optional[int] = Field(
-        default=None, strict=True, ge=0, le=1000,
+        default=None,
+        strict=True,
+        ge=0,
+        le=1000,
         description="Remaining detected silence in ms; 0 removes silence, None disables processing.",
     )
     audio_pitch: int = Field(default=0, ge=-12, le=12)
@@ -423,8 +426,7 @@ class TypecastTTSService(TTSService):
     ) -> AsyncIterator[bytes]:
         """Return audio chunks from streaming or non-streaming SDK calls."""
         settings = (
-            self._settings if isinstance(self._settings, dict)
-            else self._settings.given_fields()
+            self._settings if isinstance(self._settings, dict) else self._settings.given_fields()
         )
         language = settings.get("language")
         seed = self._typecast_settings.get("seed")

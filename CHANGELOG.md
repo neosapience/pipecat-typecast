@@ -5,13 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.3.2] - 2026-09-28
+## [0.3.2] - 2026-10-06
+
+### Changed
+
+- Require Pipecat 1.12.0 or later, Typecast Python SDK 0.5.1 or later, and multidict 6.9.1 or later.
 
 ### Fixed
 
 - Preserve Pipecat's native settings store during service initialization, avoiding pipeline startup failures and unawaited voice-setting coroutines on recent Pipecat versions.
 - Apply runtime voice, language, and model updates to subsequent Typecast requests while retaining compatibility with the older dictionary settings API.
-- Verify pipeline startup and audio frames with Pipecat 1.11.0, and retain checks against Pipecat 0.0.94 and 1.8.1.
+- Verify pipeline startup and audio frames with Pipecat 1.12.0.
 
 ## [0.3.1] - 2026-09-17
 
