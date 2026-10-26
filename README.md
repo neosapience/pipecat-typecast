@@ -18,7 +18,7 @@ Add high-quality neural voices from [Typecast](https://typecast.ai/) to your Pip
 
 ## Installation
 
-Requires Python 3.11 or later, Pipecat 1.12.0 or later, and Typecast Python SDK 0.5.1 or later.
+Requires Python 3.11 or later, Pipecat 1.14.0 or later, and Typecast Python SDK 0.5.1 or later.
 
 ```bash
 pip install pipecat-ai-typecast
