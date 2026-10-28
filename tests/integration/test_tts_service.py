@@ -104,6 +104,25 @@ class TestTypecastTTSServiceInit:
 class TestTypecastTTSServiceRunTTS:
     """Tests for TypecastTTSService.run_tts method."""
 
+    @pytest.mark.parametrize("stream", [True, False])
+    @pytest.mark.parametrize("prompt", [PresetPromptOptions(), SmartPromptOptions(previous_text="Before")])
+    async def test_ssfm_v31_request(self, mock_env, mock_aiohttp_session, sample_audio_data, stream, prompt):
+        """Preserve the explicit v31 model and prompt in both SDK request paths."""
+        service = TypecastTTSService(
+            aiohttp_session=mock_aiohttp_session, model="ssfm-v31",
+            params=TypecastInputParams(prompt_options=prompt, streaming=stream),
+        )
+        async def audio():
+            yield sample_audio_data
+        service._client.text_to_speech_stream = MagicMock(return_value=audio())
+        service._client.text_to_speech = AsyncMock(return_value=TTSResponse(audio_data=sample_audio_data, duration=0.01))
+        chunks = await service._audio_chunks("Hello", prompt, OutputOptions())
+        assert [chunk async for chunk in chunks] == [sample_audio_data]
+        method = service._client.text_to_speech_stream if stream else service._client.text_to_speech
+        request = method.call_args.args[0]
+        assert request.model.value == "ssfm-v31"
+        assert request.prompt.emotion_type == prompt.emotion_type
+
     @pytest.fixture
     def service(self, mock_env, mock_aiohttp_session):
         """Create a TypecastTTSService instance for testing."""

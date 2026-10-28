@@ -16,6 +16,15 @@ Add high-quality neural voices from [Typecast](https://typecast.ai/) to your Pip
 
 ---
 
+## SSFM 3.1 model selection
+
+Set the TTS model to `ssfm-v31` explicitly and choose a compatible voice using
+`GET /v3/voices?model=ssfm-v31`. Check the selected voice's `models` and supported
+emotions. Existing defaults are unchanged; do not infer language or cloning
+support from another model. SDK-backed integrations require `typecast-python`
+0.5.3 or later for SSFM 3.1.
+
+
 ## Installation
 
 Requires Python 3.11 or later, Pipecat 1.14.0 or later, and Typecast Python SDK 0.5.1 or later.

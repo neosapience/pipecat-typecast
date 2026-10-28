@@ -294,7 +294,7 @@ class TypecastTTSService(TTSService):
             aiohttp_session: Active aiohttp client session for API requests.
             api_key: Typecast API key. Falls back to TYPECAST_API_KEY env var.
             voice_id: Voice ID to use. Falls back to TYPECAST_VOICE_ID env var.
-            model: Typecast model version (default: ssfm-v30).
+            model: Typecast model version, including ssfm-v31 (default: ssfm-v30).
             base_url: API endpoint URL.
             sample_rate: Audio sample rate in Hz (default: 44100).
             params: Advanced configuration parameters.
