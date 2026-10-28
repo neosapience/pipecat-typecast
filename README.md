@@ -16,18 +16,9 @@ Add high-quality neural voices from [Typecast](https://typecast.ai/) to your Pip
 
 ---
 
-## SSFM 3.1 model selection
-
-Set the TTS model to `ssfm-v31` explicitly and choose a compatible voice using
-`GET /v3/voices?model=ssfm-v31`. Check the selected voice's `models` and supported
-emotions. Existing defaults are unchanged; do not infer language or cloning
-support from another model. SDK-backed integrations require `typecast-python`
-0.5.3 or later for SSFM 3.1.
-
-
 ## Installation
 
-Requires Python 3.11 or later, Pipecat 1.14.0 or later, and Typecast Python SDK 0.5.1 or later.
+Requires Python 3.11 or later, Pipecat 1.14.0 or later, and Typecast Python SDK 0.5.3 or later.
 
 ```bash
 pip install pipecat-ai-typecast
@@ -76,6 +67,11 @@ See [`example.py`](example.py) for a complete working example including event ha
 ## Configuration
 
 `TypecastTTSService` exposes structured parameter models for emotion and audio control.
+
+Set `model` to `ssfm-v31`, `ssfm-v30` (default), or `ssfm-v21`. For v31, choose a
+compatible voice with `GET /v3/voices?model=ssfm-v31` and check its supported
+emotions. Both v30 and v31 use `PresetPromptOptions` or `SmartPromptOptions`;
+the v30 preset list in the examples does not define v31 voice capabilities.
 
 ### ssfm-v30 (Default) - Preset Emotion Control
 
