@@ -203,8 +203,8 @@ The bot will create a call (e.g. Daily room) and speak responses using Typecast 
 
 | Requirement | Version |
 |-------------|---------|
-| Pipecat | v0.0.94+ (tested with v0.0.94 and v1.4.0) |
-| typecast-python | v0.3.8+ |
+| Pipecat | v1.14.0+ |
+| typecast-python | v0.5.3+ |
 | Python | 3.11+ |
 | Transports | Daily / Twilio / WebRTC |
 

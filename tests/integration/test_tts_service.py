@@ -104,6 +104,7 @@ class TestTypecastTTSServiceInit:
 class TestTypecastTTSServiceRunTTS:
     """Tests for TypecastTTSService.run_tts method."""
 
+    @pytest.mark.integration
     @pytest.mark.parametrize("stream", [True, False])
     @pytest.mark.parametrize("prompt", [PresetPromptOptions(), SmartPromptOptions(previous_text="Before")])
     async def test_ssfm_v31_request(self, mock_env, mock_aiohttp_session, sample_audio_data, stream, prompt):
