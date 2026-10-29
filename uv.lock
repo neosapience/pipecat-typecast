@@ -2236,7 +2236,7 @@ wheels = [
 
 [[package]]
 name = "pipecat-ai-typecast"
-version = "0.3.2"
+version = "0.4.0"
 source = { editable = "." }
 dependencies = [
     { name = "aiohttp" },
@@ -2275,7 +2275,7 @@ requires-dist = [
     { name = "pillow", specifier = ">=13.0.0" },
     { name = "pipecat-ai", specifier = ">=1.14.0" },
     { name = "pydantic", specifier = ">=2.0.0" },
-    { name = "typecast-python", specifier = ">=0.5.1" },
+    { name = "typecast-python", specifier = ">=0.5.3" },
     { name = "websockets", specifier = ">=12.0" },
 ]
 
@@ -3276,19 +3276,20 @@ wheels = [
 
 [[package]]
 name = "typecast-python"
-version = "0.5.2"
+version = "0.5.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aiohttp" },
+    { name = "certifi" },
     { name = "multidict" },
     { name = "pydantic" },
     { name = "requests" },
     { name = "typing-extensions" },
     { name = "urllib3" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/50/d7/457ab78247bcd3f667066538186a0a40b6a370ffc6788502991105051955/typecast_python-0.5.2.tar.gz", hash = "sha256:ced1af44d624f8527549f29c02e78203b962795f01477bf60ed6f03f0c0f30a8", size = 30586, upload-time = "2026-10-06T02:21:31.687Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/0f/40/40ba7dd7e464d01354d2bf630b941627e228415c5e059e64334ab4d9f14c/typecast_python-0.5.3.tar.gz", hash = "sha256:3330f877895af55e6252858ccaba59737e743c7ffff77b0104876868633bb2f4", size = 30715, upload-time = "2026-10-29T07:31:43.601Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a9/b3/b1add08f7ca8cd6eeb35ed733627a3a40b7c650b206c220d08a4190e04d3/typecast_python-0.5.2-py3-none-any.whl", hash = "sha256:b240085139c15cc6911d43eaddd7a4576fea2b218486cdcd786aaaf5f36c69d6", size = 40358, upload-time = "2026-10-06T02:21:30.543Z" },
+    { url = "https://files.pythonhosted.org/packages/40/7c/cc95f1949ae54e400b714f2f1db909d9fc04d87545ec52fd415991623147/typecast_python-0.5.3-py3-none-any.whl", hash = "sha256:db4b48a20a4c6d2a1dd05c6d93d0febc3beff5d9cbb4fc35e4674cb5317b062a", size = 40487, upload-time = "2026-10-29T07:31:42.308Z" },
 ]
 
 [[package]]

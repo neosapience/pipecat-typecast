@@ -1,6 +1,6 @@
 [project]
 name = "pipecat-ai-typecast"
-version = "0.3.2"
+version = "0.4.0"
 description = "Typecast is an AI text-to-speech API that converts text into lifelike, expressive speech in many languages."
 license = "BSD-2-Clause"
 license-files = ["LICENSE"]
@@ -26,7 +26,7 @@ dependencies = [
     "Pillow>=13.0.0",
     "loguru>=0.7.0",
     "pydantic>=2.0.0",
-    "typecast-python>=0.5.1",
+    "typecast-python>=0.5.3",
     "multidict>=6.9.1",
     "websockets>=12.0",
 ]

@@ -18,7 +18,7 @@ Add high-quality neural voices from [Typecast](https://typecast.ai/) to your Pip
 
 ## Installation
 
-Requires Python 3.11 or later, Pipecat 1.14.0 or later, and Typecast Python SDK 0.5.1 or later.
+Requires Python 3.11 or later, Pipecat 1.14.0 or later, and Typecast Python SDK 0.5.3 or later.
 
 ```bash
 pip install pipecat-ai-typecast
@@ -67,6 +67,11 @@ See [`example.py`](example.py) for a complete working example including event ha
 ## Configuration
 
 `TypecastTTSService` exposes structured parameter models for emotion and audio control.
+
+Set `model` to `ssfm-v31`, `ssfm-v30` (default), or `ssfm-v21`. For v31, choose a
+compatible voice with `GET /v3/voices?model=ssfm-v31` and check its supported
+emotions. Both v30 and v31 use `PresetPromptOptions` or `SmartPromptOptions`;
+the v30 preset list in the examples does not define v31 voice capabilities.
 
 ### ssfm-v30 (Default) - Preset Emotion Control
 
@@ -198,8 +203,8 @@ The bot will create a call (e.g. Daily room) and speak responses using Typecast 
 
 | Requirement | Version |
 |-------------|---------|
-| Pipecat | v0.0.94+ (tested with v0.0.94 and v1.4.0) |
-| typecast-python | v0.3.8+ |
+| Pipecat | v1.14.0+ |
+| typecast-python | v0.5.3+ |
 | Python | 3.11+ |
 | Transports | Daily / Twilio / WebRTC |
 
